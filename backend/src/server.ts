@@ -147,7 +147,7 @@ ${session.history.join('\n')}
 
                     let aiReply = "";
                     try {
-                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                         const result = await model.generateContent(systemPrompt);
                         aiReply = result.response.text();
                         // Handle potential AI asterisks escaping to ensure whatsapp bolds work correctly.
