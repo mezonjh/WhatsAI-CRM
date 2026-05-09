@@ -61,7 +61,13 @@ export default function MasterCRM() {
             <Bot size={20} /> إعدادات الذكاء
           </div>
           <div className={`${styles.navItem} ${styles.chats} ${activeTab === 'chats' ? styles.active : ''}`} onClick={() => setActiveTab('chats')}>
-            <MessageCircle size={20} /> المحادثات المباشرة
+            <MessageCircle size={20} /> البريد الوارد (Inbox)
+          </div>
+          <div className={`${styles.navItem} ${styles.campaigns} ${activeTab === 'campaigns' ? styles.active : ''}`} onClick={() => setActiveTab('campaigns')}>
+            <Zap size={20} /> حملات التسويق (AI)
+          </div>
+          <div className={`${styles.navItem} ${styles.automations} ${activeTab === 'automations' ? styles.active : ''}`} onClick={() => setActiveTab('automations')}>
+            <TerminalSquare size={20} /> الأتمتة الذكية
           </div>
           <div className={`${styles.navItem} ${styles.stores} ${activeTab === 'stores' ? styles.active : ''}`} onClick={() => setActiveTab('stores')}>
             <Store size={20} /> المتاجر والبائعين
@@ -73,7 +79,7 @@ export default function MasterCRM() {
             <BarChart3 size={20} /> التحليلات والتقارير
           </div>
           <div className={`${styles.navItem} ${styles.logs} ${activeTab === 'logs' ? styles.active : ''}`} onClick={() => setActiveTab('logs')}>
-            <TerminalSquare size={20} /> سجلات النظام
+            <Activity size={20} /> سجلات النظام
           </div>
           <div className={`${styles.navItem} ${styles.settings} ${activeTab === 'settings' ? styles.active : ''}`} onClick={() => setActiveTab('settings')}>
             <Settings size={20} /> الإعدادات العامة
@@ -314,11 +320,18 @@ export default function MasterCRM() {
           </div>
         )}
 
-        {/* TAB: LIVE CHATS */}
+        {/* TAB: LIVE CHATS (OMNICHANNEL INBOX) */}
         {activeTab === 'chats' && (
-          <div className="animate-fade-in">
-            <h1 className={styles.sectionTitle}><MessageCircle color="#ec4899" /> المحادثات المباشرة (Live)</h1>
-            <div className={styles.chatContainer}>
+          <div className="animate-fade-in" style={{ height: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+               <h1 className={styles.sectionTitle} style={{ margin: 0 }}><MessageCircle color="#ec4899" /> صندوق الوارد الموحد (Omnichannel)</h1>
+               <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className={styles.btnSecondary} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>WhatsApp</button>
+                  <button className={styles.btnSecondary} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>Messenger</button>
+                  <button className={styles.btnSecondary} style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>Instagram</button>
+               </div>
+            </div>
+            <div className={styles.chatContainer} style={{ flex: 1, height: '100%' }}>
               <div className={styles.chatSidebar}>
                 <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <input type="text" placeholder="بحث عن عميل..." style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
@@ -326,22 +339,37 @@ export default function MasterCRM() {
                 {messagesList.length === 0 ? <p style={{ padding: '1rem', color: '#6b7280', textAlign: 'center' }}>لا توجد محادثات</p> : null}
                 {messagesList.map((msg, idx) => (
                   <div key={idx} style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', background: idx === 0 ? 'rgba(236, 72, 153, 0.1)' : 'transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <strong style={{ color: '#fff' }}>{msg.from}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <strong style={{ color: '#fff' }}>{msg.from}</strong>
+                        {msg.platform === 'Instagram' ? <img src="/icons/instagram.svg" width={14} /> : msg.platform === 'Messenger' ? <img src="/icons/facebook.svg" width={14} /> : <img src="/icons/whatsapp_cloud.svg" width={14} />}
+                      </div>
                       <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{msg.time}</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{msg.message}</p>
+                    {/* Mock Sentiment */}
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>
+                      {idx % 3 === 0 ? <span style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '4px' }}>😊 إيجابي</span> : 
+                       idx % 2 === 0 ? <span style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '2px 6px', borderRadius: '4px' }}>😠 غاضب (تدخل مطلوب)</span> :
+                       <span style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px' }}>🤖 الذكاء الاصطناعي يتولى الأمر</span>}
+                    </div>
                   </div>
                 ))}
               </div>
               <div className={styles.chatMain}>
-                <div className={styles.chatHeader}>
-                  <div style={{ width: '40px', height: '40px', background: '#ec4899', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                    {messagesList[0]?.from?.charAt(0) || '?'}
+                <div className={styles.chatHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ width: '40px', height: '40px', background: '#ec4899', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                      {messagesList[0]?.from?.charAt(0) || '?'}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0 }}>{messagesList[0]?.from || 'اختر محادثة'}</h3>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#10b981' }}>{messagesList[0]?.platform || 'WhatsApp'} - {messagesList[0]?.number}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 style={{ margin: 0 }}>{messagesList[0]?.from || 'اختر محادثة'}</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#10b981' }}>{messagesList[0]?.number}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className={styles.btnSecondary} style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>تعليق الذكاء الاصطناعي</button>
+                    <button className={styles.btnPrimary} style={{ background: 'linear-gradient(to right, #10b981, #059669)' }}>إتمام الطلب</button>
                   </div>
                 </div>
                 <div className={styles.chatMessages}>
@@ -360,9 +388,101 @@ export default function MasterCRM() {
                     </>
                   )}
                 </div>
-                <div style={{ padding: '1rem', background: 'rgba(17,24,39,0.8)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <input type="text" placeholder="اكتب رسالة يدوية للتدخل البشري..." style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
+                <div style={{ padding: '1rem', background: 'rgba(17,24,39,0.8)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '1rem' }}>
+                  <input type="text" placeholder="اكتب رسالة يدوية للتدخل البشري..." style={{ flex: 1, padding: '1rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff', outline: 'none' }} />
+                  <button className={styles.btnPrimary} style={{ padding: '0 2rem' }}>إرسال</button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: CAMPAIGNS (AI MARKETING) */}
+        {activeTab === 'campaigns' && (
+          <div className="animate-fade-in">
+            <h1 className={styles.sectionTitle}><Zap color="#f59e0b" /> حملات التسويق الذكية (AI Campaigns)</h1>
+            <div className={styles.statsGrid} style={{ marginBottom: '2rem' }}>
+              <div className={styles.statCard}>
+                <p className={styles.statTitle}>الحملات النشطة</p>
+                <h3 className={styles.statValue}>2</h3>
+              </div>
+              <div className={styles.statCard}>
+                <p className={styles.statTitle}>رسائل تم إرسالها</p>
+                <h3 className={styles.statValue}>1,402</h3>
+              </div>
+              <div className={styles.statCard}>
+                <p className={styles.statTitle}>نسبة التحويل (Conversion)</p>
+                <h3 className={styles.statValue} style={{ color: '#10b981' }}>24%</h3>
+              </div>
+            </div>
+
+            <div className={styles.panel}>
+              <h2 className={styles.panelTitle}>إنشاء حملة تسويقية عبر الذكاء الاصطناعي</h2>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div className={styles.inputGroup}>
+                    <label>الهدف من الحملة</label>
+                    <textarea rows={4} placeholder="مثال: قم بكتابة رسالة جذابة تقدم خصم 20% لعملاء الـ VIP بمناسبة العيد، استخدم إيموجي لطيفة واطلب منهم زيارة الموقع..." style={{ width: '100%', padding: '1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }}></textarea>
+                  </div>
+                  <button className={styles.btnPrimary} style={{ background: 'linear-gradient(to right, #a855f7, #c084fc)' }}>✨ توليد الرسالة بالذكاء الاصطناعي</button>
+                </div>
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  <h3 style={{ marginTop: 0, color: '#9ca3af' }}>الرسالة المولدة:</h3>
+                  <div style={{ background: '#0f172a', padding: '1.5rem', borderRadius: '12px', color: '#e2e8f0', minHeight: '150px' }}>
+                    مرحباً يا غالي! 🌙✨<br/><br/>
+                    بمناسبة العيد حابين نعايد عليك بخصم خاص جداً (20%) على جميع منتجاتنا لأنك من عملائنا المميزين (VIP) 💎.<br/><br/>
+                    استخدم كود الخصم: EID20<br/>
+                    اطلب الآن قبل نفاذ الكمية! 🏃‍♂️💨
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <span style={{ color: '#9ca3af' }}>استهداف:</span>
+                  <select style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '0.8rem', borderRadius: '8px', outline: 'none' }}>
+                    <option>جميع عملاء الواتساب (1,200)</option>
+                    <option>عملاء الـ VIP فقط (150)</option>
+                    <option>السلات المتروكة (43)</option>
+                  </select>
+                </div>
+                <button className={styles.btnPrimary} style={{ background: 'linear-gradient(to right, #10b981, #059669)', fontSize: '1.1rem', padding: '1rem 3rem' }}>إطلاق الحملة الآن 🚀</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: AUTOMATIONS */}
+        {activeTab === 'automations' && (
+          <div className="animate-fade-in">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h1 className={styles.sectionTitle} style={{ margin: 0 }}><TerminalSquare color="#3b82f6" /> الأتمتة والردود الآلية المتقدمة</h1>
+              <button className={styles.btnPrimary}><Plus size={18}/> إنشاء قاعدة جديدة</button>
+            </div>
+            
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>توجيه العملاء الغاضبين للموظف (Sentiment Routing)</h3>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>إذا اكتشف الذكاء الاصطناعي أن العميل <strong style={{color:'#ef4444'}}>غاضب</strong> ➔ أوقف البوت وأرسل إشعاراً للمدير فوراً.</p>
+                </div>
+                <input type="checkbox" defaultChecked style={{ width: '20px', height: '20px', accentColor: '#10b981' }} />
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>متابعة السلات المتروكة (Abandoned Cart)</h3>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>إذا لم يكمل العميل الشراء خلال ساعتين ➔ أرسل له رسالة تحفيزية بخصم 5%.</p>
+                </div>
+                <input type="checkbox" defaultChecked style={{ width: '20px', height: '20px', accentColor: '#10b981' }} />
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #a855f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>تحية خارج أوقات العمل</h3>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>من الساعة 12 ص إلى 8 ص ➔ أرسل: "مرحباً، المتجر مغلق الآن لكن تفضل بترك طلبك وسننفذه صباحاً".</p>
+                </div>
+                <input type="checkbox" style={{ width: '20px', height: '20px', accentColor: '#10b981' }} />
               </div>
             </div>
           </div>
