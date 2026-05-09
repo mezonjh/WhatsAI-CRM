@@ -4,7 +4,8 @@
   "description": "Multi-store AI Marketplace Backend MVP",
   "main": "src/server.ts",
   "scripts": {
-    "start": "ts-node src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
     "dev": "ts-node src/server.ts"
   },
   "dependencies": {
