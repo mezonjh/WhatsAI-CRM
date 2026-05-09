@@ -20,13 +20,14 @@ export default function MasterCRM() {
   const [qrStep, setQrStep] = useState(1);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState('');
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   
   const [liveMetrics, setLiveMetrics] = useState({ totalToday: 0, perMinute: 0, activeUsers: 0 });
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [systemLogs, setSystemLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://whats-ai-crm.vercel.app';
     socket = io(backendUrl);
     socket.on('wa_status', (data: any) => setWaStatus(data.status));
     socket.on('wa_qr', (qr: string) => setQrCodeData(qr));
@@ -38,7 +39,8 @@ export default function MasterCRM() {
 
   const openQrRequest = () => {
     socket.emit('request_qr');
-    setActiveTab('whatsapp');
+    setActiveTab('channels');
+    setSelectedChannel('whatsapp');
   };
 
   return (
@@ -52,8 +54,8 @@ export default function MasterCRM() {
           <div className={`${styles.navItem} ${styles.overview} ${activeTab === 'overview' ? styles.active : ''}`} onClick={() => setActiveTab('overview')}>
             <LayoutDashboard size={20} /> نظرة عامة
           </div>
-          <div className={`${styles.navItem} ${styles.whatsapp} ${activeTab === 'whatsapp' ? styles.active : ''}`} onClick={() => setActiveTab('whatsapp')}>
-            <Phone size={20} /> ربط واتساب API
+          <div className={`${styles.navItem} ${styles.channels} ${activeTab === 'channels' ? styles.active : ''}`} onClick={() => {setActiveTab('channels'); setSelectedChannel(null);}}>
+            <MessageSquare size={20} /> قنوات الاتصال
           </div>
           <div className={`${styles.navItem} ${styles.ai} ${activeTab === 'ai' ? styles.active : ''}`} onClick={() => setActiveTab('ai')}>
             <Bot size={20} /> إعدادات الذكاء
@@ -134,10 +136,15 @@ export default function MasterCRM() {
           </div>
         )}
 
-        {/* TAB: WHATSAPP API */}
-        {activeTab === 'whatsapp' && (
+        {/* TAB: CHANNELS */}
+        {activeTab === 'channels' && (
           <div className="animate-fade-in">
-            <h1 className={styles.sectionTitle}><Phone color="#10b981" /> إدارة ربط واتساب API</h1>
+            {selectedChannel === 'whatsapp' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                   <button onClick={() => setSelectedChannel(null)} className={styles.btnSecondary} style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff' }}><ArrowUpLeft size={20}/></button>
+                   <h1 className={styles.sectionTitle} style={{ margin: 0 }}><Phone color="#10b981" /> إدارة ربط واتساب API</h1>
+                </div>
             <div className={styles.panel} style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
               <div style={{ display: 'inline-flex', background: 'rgba(16, 185, 129, 0.1)', padding: '1.5rem', borderRadius: '24px', marginBottom: '1.5rem' }}>
                 <QrCode size={48} color="#10b981" />
@@ -198,6 +205,90 @@ export default function MasterCRM() {
                 </div>
               )}
             </div>
+            </>
+            ) : selectedChannel === 'facebook' || selectedChannel === 'instagram' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                   <button onClick={() => setSelectedChannel(null)} className={styles.btnSecondary} style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#fff' }}><ArrowUpLeft size={20}/></button>
+                   <h1 className={styles.sectionTitle} style={{ margin: 0 }}>
+                     {selectedChannel === 'facebook' ? <img src="/icons/facebook.svg" width={32} /> : <img src="/icons/instagram.svg" width={32} />}
+                     إعداد رابط الـ Webhook
+                   </h1>
+                </div>
+                <div className={styles.panel} style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  <h2 style={{ marginBottom: '1rem' }}>إعدادات الربط مع منصة Meta (Facebook & Instagram)</h2>
+                  <p style={{ color: '#9ca3af', marginBottom: '2rem', lineHeight: '1.6' }}>لربط صفحتك على {selectedChannel === 'facebook' ? 'فيسبوك' : 'انستجرام'} مع النظام، يرجى نسخ الروابط التالية وإدخالها في إعدادات الـ Webhook داخل حساب المطورين (Meta Developers).</p>
+                  
+                  <div style={{ background: 'rgba(0,0,0,0.5)', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem' }}>
+                    <label style={{ color: '#6b7280', display: 'block', marginBottom: '0.5rem' }}>رابط الـ Webhook URL</label>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <input type="text" readOnly value="https://whats-ai-crm.vercel.app/webhook/meta" style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                      <button className={styles.btnSecondary} onClick={() => navigator.clipboard.writeText('https://whats-ai-crm.vercel.app/webhook/meta')}>نسخ</button>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.5)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                    <label style={{ color: '#6b7280', display: 'block', marginBottom: '0.5rem' }}>رمز التوثيق (Verify Token)</label>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <input type="text" readOnly value="whatsaicrm_secure_token_2026" style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', outline: 'none' }} />
+                      <button className={styles.btnSecondary} onClick={() => navigator.clipboard.writeText('whatsaicrm_secure_token_2026')}>نسخ</button>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className={styles.btnPrimary} style={{ background: 'linear-gradient(to right, #3b82f6, #2563eb)', flex: 1 }}>تم إعداد الـ Webhook بنجاح</button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className={styles.sectionTitle}><MessageSquare color="#3b82f6" /> قنوات الاتصال المدعومة</h1>
+                <p style={{ color: '#9ca3af', marginBottom: '2rem' }}>اختر القناة التي تود ربطها بالنظام للبدء في استقبال الرسائل عبر الذكاء الاصطناعي.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                   <div onClick={() => setSelectedChannel('whatsapp')} style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }} className="hover:bg-opacity-10">
+                     <img src="/icons/whatsapp_cloud.svg" alt="WhatsApp Cloud" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>WhatsApp Cloud</h3>
+                     <span style={{ fontSize: '0.8rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>مُوصى به</span>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/whatsapp_business.svg" alt="WhatsApp Business" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>WhatsApp Business</h3>
+                   </div>
+                   <div onClick={() => setSelectedChannel('facebook')} style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/facebook.svg" alt="Facebook Messenger" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>Messenger</h3>
+                   </div>
+                   <div onClick={() => setSelectedChannel('instagram')} style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/instagram.svg" alt="Instagram" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>Instagram</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/telegram.svg" alt="Telegram" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>Telegram</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/tiktok.svg" alt="TikTok" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>TikTok</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/viber.svg" alt="Viber" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>Viber</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/line.svg" alt="Line" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>Line</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s' }} className="hover:bg-opacity-10">
+                     <img src="/icons/wechat.svg" alt="WeChat" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>WeChat</h3>
+                   </div>
+                   <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem 1.5rem', borderRadius: '16px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', transition: 'all 0.2s', opacity: 0.8 }} className="hover:bg-opacity-10">
+                     <img src="/icons/custom_channel.svg" alt="Custom Channel" width={64} height={64} />
+                     <h3 style={{ margin: 0, color: '#fff' }}>قناة مخصصة (API)</h3>
+                   </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

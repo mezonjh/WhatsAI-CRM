@@ -6,10 +6,13 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import axios from 'axios';
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSy_YOUR_MOCK_KEY");
+const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "whatsaicrm_secure_token_2026";
+const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || "mock_meta_access_token";
 
 const app = express();
 app.use(bodyParser.json());
@@ -46,6 +49,124 @@ setInterval(() => {
     liveMetrics.perMinute = Math.max(0, liveMetrics.perMinute - 1);
     io.emit('metrics_update', liveMetrics);
 }, 60000);
+
+async function handleIncomingMessage(platform: string, fromId: string, pushName: string, text: string, replyCallback: (replyText: string) => Promise<void>) {
+    addLog('USER', `رسالة عبر ${platform} من ${pushName}: ${text}`);
+    liveMetrics.totalToday++;
+    liveMetrics.perMinute++;
+    
+    // Session Management
+    if (!chatSessions[fromId]) chatSessions[fromId] = { history: [], orderState: 'NONE' };
+    const session = chatSessions[fromId];
+    
+    session.history.push(`العميل: ${text}`);
+    if (session.history.length > 8) session.history.shift();
+
+    const productListText = products.map(p => `- *${p.name}* (${p.specs})\n💰 السعر: ${p.price}`).join('\n\n');
+    const isAdmin = fromId.includes('201020118437') || fromId.includes('201026672074');
+    
+    let systemPrompt = "";
+    if (isAdmin) {
+        systemPrompt = `أنت المساعد الذكي لإدارة نظام WhatsAI CRM.
+أنت تتحدث الآن مع **المدير / الآدمن** (صاحب الصلاحيات العليا).
+المهمة:
+1. تنفيذ أوامر المدير.
+2. إذا طلب المدير ملخص المبيعات، أخبره أن النظام يعمل بكفاءة وأنه تم استلام ${liveMetrics.totalToday} رسالة اليوم عبر المنصات.
+3. كن عملياً ومباشراً.`;
+    } else {
+        systemPrompt = `أنت مساعد مبيعات احترافي جداً لمتجر (WhatsAI Market).
+أنت تتحدث مع العميل عبر ${platform}.
+**قواعد الرد:**
+1. **الترحيب**: رحب بالعميل بحفاوة.
+2. **عرض المنتجات**: اعرض المنتجات بوضوح.
+3. **الحجز**: خذ (الاسم الثنائي، العنوان، ورقم للتواصل).
+4. **تأكيد الأوردر**: في حال أخذ البيانات أصدر الفاتورة.
+تاريخ المحادثة الأخير مع العميل لمعرفة السياق:
+${session.history.join('\n')}
+
+قم بالرد نيابة عن المتجر برد قصير، لطيف، واحترافي وباللغة العربية.`;
+    }
+
+    let aiReply = "";
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(systemPrompt);
+        aiReply = result.response.text().replace(/\*\*/g, '*');
+    } catch (error: any) {
+        console.error('Gemini Error:', error.message);
+        aiReply = "مرحباً بك! نأسف ولكن نظام الذكاء الاصطناعي يخضع لتحديث سريع، سيتم الرد عليك في غضون دقائق.";
+        addLog('ERROR', 'فشل الذكاء الاصطناعي في الرد');
+    }
+
+    session.history.push(`أنت: ${aiReply}`);
+    addLog('AI', `رد البوت عبر ${platform} على ${pushName}`);
+
+    recentMessages.unshift({
+        from: pushName,
+        number: fromId,
+        message: text,
+        time: new Date().toLocaleTimeString('ar-EG'),
+        ai: true,
+        aiResponse: aiReply,
+        platform: platform
+    });
+    if (recentMessages.length > 10) recentMessages.pop();
+
+    io.emit('new_message', recentMessages);
+    io.emit('metrics_update', liveMetrics);
+
+    await replyCallback(aiReply);
+}
+
+// META WEBHOOKS (FACEBOOK/INSTAGRAM)
+app.get('/webhook/meta', (req: Request, res: Response) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === META_VERIFY_TOKEN) {
+            addLog('SUCCESS', 'تم توثيق Webhook الخاص بـ Meta (Facebook/Instagram) بنجاح');
+            res.status(200).send(challenge);
+        } else {
+            res.sendStatus(403);
+        }
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+app.post('/webhook/meta', async (req: Request, res: Response) => {
+    const body = req.body;
+    if (body.object === 'page' || body.object === 'instagram') {
+        res.status(200).send('EVENT_RECEIVED');
+        for (const entry of body.entry) {
+            if (!entry.messaging) continue;
+            for (const webhookEvent of entry.messaging) {
+                if (webhookEvent.message && webhookEvent.message.text) {
+                    const senderId = webhookEvent.sender.id;
+                    const text = webhookEvent.message.text;
+                    const platform = body.object === 'instagram' ? 'Instagram' : 'Messenger';
+                    
+                    await handleIncomingMessage(platform, senderId, senderId, text, async (replyText) => {
+                        // Send reply via Meta Graph API
+                        try {
+                            const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${META_ACCESS_TOKEN}`;
+                            await axios.post(url, {
+                                recipient: { id: senderId },
+                                message: { text: replyText }
+                            });
+                        } catch (err: any) {
+                            addLog('ERROR', `فشل إرسال رسالة ${platform}: ${err.message}`);
+                        }
+                    });
+                }
+            }
+        }
+    } else {
+        res.sendStatus(404);
+    }
+});
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -95,86 +216,10 @@ async function connectToWhatsApp() {
                     if (!text) continue;
 
                     const pushName = msg.pushName || from.split('@')[0];
-                    const phoneNumber = from.split('@')[0];
                     
-                    addLog('USER', `رسالة من ${pushName}: ${text}`);
-                    liveMetrics.totalToday++;
-                    liveMetrics.perMinute++;
-                    
-                    // Session Management
-                    if (!chatSessions[from]) chatSessions[from] = { history: [], orderState: 'NONE' };
-                    const session = chatSessions[from];
-                    
-                    session.history.push(`العميل: ${text}`);
-                    if (session.history.length > 8) session.history.shift(); // Keep last 8 messages
-
-                    const productListText = products.map(p => `- *${p.name}* (${p.specs})\n💰 السعر: ${p.price}`).join('\n\n');
-                    
-                    const isAdmin = phoneNumber === '201020118437' || phoneNumber === '201026672074';
-                    
-                    let systemPrompt = "";
-                    if (isAdmin) {
-                        systemPrompt = `أنت المساعد الذكي لإدارة نظام WhatsAI CRM.
-أنت تتحدث الآن مع **المدير / الآدمن** (صاحب الصلاحيات العليا).
-المهمة:
-1. تنفيذ أوامر المدير (مثل إعطاء تقرير مختصر عن عدد الطلبات، أو شرح ميزة).
-2. إذا طلب المدير ملخص المبيعات، أخبره أن النظام يعمل بكفاءة وأنه تم استلام ${liveMetrics.totalToday} رسالة اليوم.
-3. كن عملياً ومباشراً وقم بتنسيق الإجابة بنقاط واضحة.`;
-                    } else {
-                        systemPrompt = `أنت مساعد مبيعات احترافي جداً لمتجر (WhatsAI Market).
-أنت تتحدث مع العميل عبر الواتساب.
-**قواعد الرد (صارمة جداً):**
-1. **الترحيب**: رحب بالعميل بحفاوة في البداية واستخدم الإيموجي المناسبة.
-2. **عرض المنتجات**: اعرض المنتجات بتنسيق الواتساب (استخدم نجمة * للخط العريض).
-3. **الحجز (المعاملات)**: إذا طلب العميل منتجاً، يجب أن تطلب منه (الاسم الثنائي، العنوان بالتفصيل، ورقم بديل).
-4. **تأكيد الأوردر (مهم جداً)**: إذا أعطاك العميل البيانات، يجب أن ترد عليه بفاتورة منسقة كالتالي:
-   🧾 *تأكيد الطلب*
-   رقم الطلب: #ORD-${Math.floor(Math.random() * 10000)}
-   المنتج: [اسم المنتج]
-   الاسم: [الاسم]
-   العنوان: [العنوان]
-   سيتم التواصل معك قريباً للتوصيل! 🚚
-5. كن ودوداً ولا تخرج عن سياق المتجر أبداً.
-
-**قائمة المنتجات المتوفرة حالياً:**
-${productListText}
-
-تاريخ المحادثة الأخير مع العميل لمعرفة السياق:
-${session.history.join('\n')}
-
-قم بالرد نيابة عن المتجر برد قصير، لطيف، واحترافي وباللغة العربية.`;
-                    }
-
-                    let aiReply = "";
-                    try {
-                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                        const result = await model.generateContent(systemPrompt);
-                        aiReply = result.response.text();
-                        // Handle potential AI asterisks escaping to ensure whatsapp bolds work correctly.
-                        aiReply = aiReply.replace(/\*\*/g, '*');
-                    } catch (error: any) {
-                        console.error('Gemini Error:', error.message);
-                        aiReply = "مرحباً بك! نأسف ولكن نظام الذكاء الاصطناعي يخضع لتحديث سريع في هذه اللحظة، سيتم الرد عليك في غضون دقائق.";
-                        addLog('ERROR', 'فشل الذكاء الاصطناعي في الرد');
-                    }
-
-                    session.history.push(`أنت: ${aiReply}`);
-                    addLog('AI', `رد البوت على ${pushName}`);
-
-                    recentMessages.unshift({
-                        from: pushName,
-                        number: phoneNumber,
-                        message: text,
-                        time: new Date().toLocaleTimeString('ar-EG'),
-                        ai: true,
-                        aiResponse: aiReply // send AI reply to frontend too
+                    await handleIncomingMessage('WhatsApp', from, pushName, text, async (replyText) => {
+                        if (waSocket) await waSocket.sendMessage(from, { text: replyText });
                     });
-                    if (recentMessages.length > 10) recentMessages.pop();
-
-                    io.emit('new_message', recentMessages);
-                    io.emit('metrics_update', liveMetrics);
-
-                    if (waSocket) await waSocket.sendMessage(from, { text: aiReply });
                 }
             }
         }
