@@ -1,0 +1,8 @@
+{
+  "name": "whats-ai-crm-root",
+  "version": "1.0.0",
+  "description": "Root package for free hosting deployment",
+  "scripts": {
+    "start": "cd backend && npm install && npm start"
+  }
+}
