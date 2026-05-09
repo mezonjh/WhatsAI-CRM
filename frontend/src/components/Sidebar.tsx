@@ -31,13 +31,8 @@ export default function Sidebar() {
 
   return (
     <aside className="w-72 bg-[#0a0a0c] border-l border-gray-800 flex flex-col h-screen sticky top-0 shadow-2xl">
-      <div className="p-8 pb-6">
-        <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-l from-emerald-400 to-teal-500 flex items-center gap-3">
-          <Bot size={32} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-          واتس أيه آي
-        </h1>
-        <p className="text-xs text-gray-400 mt-2 tracking-widest font-bold">نظام الإدارة الشامل (CRM)</p>
-      </div>
+      {/* Branding section removed */}
+
 
       <nav className="flex-1 px-4 space-y-3 overflow-y-auto mt-4">
         {navItems.map((item) => {

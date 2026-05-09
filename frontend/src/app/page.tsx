@@ -45,9 +45,8 @@ export default function MasterCRM() {
     <div className={styles.container}>
       {/* ---------------- SIDEBAR ---------------- */}
       <aside className={styles.sidebar}>
-        <div className={styles.brand}>
-          <span>WhatsAI</span> <span style={{color: '#fff', fontSize: '1.2rem'}}>CRM</span>
-        </div>
+        {/* Brand header removed */}
+
         
         <nav>
           <div className={`${styles.navItem} ${styles.overview} ${activeTab === 'overview' ? styles.active : ''}`} onClick={() => setActiveTab('overview')}>
