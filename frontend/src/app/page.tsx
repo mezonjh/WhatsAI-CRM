@@ -474,7 +474,7 @@ export default function MasterCRM() {
                       <td><span className={styles.badge} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>{waStatus}</span></td>
                       <td style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={() => setActiveTab('overview')} style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>لوحة التحكم</button>
-                        <button style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>إزالة</button>
+                        <button onClick={() => { if(window.confirm('هل أنت متأكد من إزالة الرقم؟ سيتم فصل البوت فوراً.')) socket.emit('logout'); }} style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>إزالة</button>
                       </td>
                     </tr>
                   </tbody>

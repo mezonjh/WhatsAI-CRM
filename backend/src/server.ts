@@ -194,6 +194,23 @@ io.on('connection', (socket) => {
             else if (!waSocket) connectToWhatsApp();
         }
     });
+
+    socket.on('logout', async () => {
+        try {
+            if (waSocket) {
+                await waSocket.logout();
+                waSocket = null;
+            }
+        } catch (e) {}
+        const fs = require('fs');
+        if (fs.existsSync('auth_info_baileys')) {
+            fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+        }
+        connectionStatus = 'مغلق';
+        lastQrCode = '';
+        io.emit('wa_status', { status: connectionStatus });
+        connectToWhatsApp();
+    });
 });
 
 const PORT = process.env.PORT || 3001;
